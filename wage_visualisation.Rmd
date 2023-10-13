@@ -1,0 +1,66 @@
+---
+title: "Wage Visualisations"
+author: "Sookthi"
+date: "2023-10-13"
+output: html_document
+---
+
+### Load Libraries
+```{r, message = FALSE}
+library(tidyverse)
+library(dbplyr)
+library(readxl)
+library(ggplot2)
+```
+
+### Load database
+```{r, message = FALSE}
+my_data <- read_excel("CRAN_Wage.xlsx")
+```
+
+### Create histogram 
+```{r}
+ggplot(data = my_data, mapping = aes(x = wage))+
+  geom_histogram(binwidth=5)
+```
+
+### Summarise data 
+```{r}
+
+my_data %>%
+  group_by(education) %>%
+  summarise(mean(wage))
+
+my_data %>%
+  group_by(education) %>%
+  summarise(median(wage))
+
+```
+
+### Scatter plot
+Start with the CRAN_Wages data frame, and map the x axis to wage and y axis to age. 
+
+Represent each observation with a point, corresponding to the age and wage of a recorded individual. The colour of the point will depend on the sector the individual is working in. 
+
+`labs` is used to title the graph 'Wages and Ages', assign a subtitle to the graph, name the x and y axes, and attribute the data to a source in the caption. 
+
+`scale_colour_viridis_d()` is used to make the colour of the points in the graph more accessible to colour-blind individuals. 
+
+```{r}
+ggplot(data=my_data, mapping = aes (x = wage, y = age, colour=jobclass))+
+  geom_point()+
+  labs(title = "Wages and Ages", 
+       subtitle = "Dimensions across Industrial and Information jobs",
+       x = "Wage",
+       y = "Age",
+       colour = "Sector",
+       caption = "Source: CRAN_Wage") +
+  scale_colour_viridis_d()
+       
+```
+
+
+
+### Box and whisker plot
+
+
