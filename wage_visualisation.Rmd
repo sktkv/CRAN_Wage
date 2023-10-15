@@ -8,9 +8,10 @@ output: html_document
 ### Load Libraries
 ```{r, message = FALSE}
 library(tidyverse)
-library(dbplyr)
+library(dplyr)
 library(readxl)
 library(ggplot2)
+library(hexbin)
 ```
 
 ### Load database
@@ -18,23 +19,51 @@ library(ggplot2)
 my_data <- read_excel("CRAN_Wage.xlsx")
 ```
 
-### Create histogram 
+
+### Glimpse 
+
 ```{r}
-ggplot(data = my_data, mapping = aes(x = wage))+
-  geom_histogram(binwidth=5)
+glimpse(my_data)
+
+
+
 ```
 
-### Summarise data 
+### Create histogram 
 ```{r}
+ggplot(data = my_data, mapping = aes(x = wage, fill = race))+
+  geom_histogram(binwidth=10, alpha=0.7)+
+  labs(
+    x = "Wage amount",
+    y = "Frequency",
+    title = "Frequency of wage amounts"
+  )
+```
 
-my_data %>%
-  group_by(education) %>%
-  summarise(mean(wage))
 
-my_data %>%
-  group_by(education) %>%
-  summarise(median(wage))
+### Faceted histogram 
+```{r}
+ggplot(data = my_data, mapping = aes(x = wage, fill = race))+
+  geom_histogram(binwidth=10, alpha=0.7)+
+  labs(
+    x = "Wage amount",
+    y = "Frequency",
+    title = "Frequency of wage amounts"
+  )+
+  facet_wrap(~race)
+```
 
+### Density Plot
+`geom_density`
+
+```{r}
+ggplot(data=my_data, mapping = aes(x=wage, fill=race))+
+  geom_density(adjust = 1, alpha=0.5)+
+  labs(
+    x = "Wage amount",
+    y = "Frequency",
+    title = "Frequency of wage amounts"
+  )
 ```
 
 ### Scatter plot
@@ -44,23 +73,172 @@ Represent each observation with a point, corresponding to the age and wage of a 
 
 `labs` is used to title the graph 'Wages and Ages', assign a subtitle to the graph, name the x and y axes, and attribute the data to a source in the caption. 
 
-`scale_colour_viridis_d()` is used to make the colour of the points in the graph more accessible to colour-blind individuals. 
+`scale_colour_viridis_d()` is used to make the colour of the points in the graph more accessible to colour-blind individuals. It has not been added here, but has been added as a comment for future reference.
+
+`size` defines the size of the points. `alpha` defines transparency. If these are added to the aesthetics function as **mapping** , they can be used to tell apart variables. If they are added to the `labs` function, they are part of the **setting** and will be applied uniformly across all. 
 
 ```{r}
-ggplot(data=my_data, mapping = aes (x = wage, y = age, colour=jobclass))+
+ggplot(data=my_data, 
+       mapping = aes (x = wage, 
+                      y = age, 
+                      colour = jobclass,
+                      shape = jobclass)) +
   geom_point()+
   labs(title = "Wages and Ages", 
        subtitle = "Dimensions across Industrial and Information jobs",
        x = "Wage",
        y = "Age",
        colour = "Sector",
+       shape = "Sector",
+       size = 3,
+       alpha=0.7,
        caption = "Source: CRAN_Wage") +
-  scale_colour_viridis_d()
+  geom_smooth(method = "lm")#+
+  #scale_color_viridis_d()
+
+
        
 ```
 
 
+### Faceting
+
+Faceting helps us divide our data into more observable graphs when we have too many (and overlapping) data points. 
+
+Syntax: 
+- `facet_grid(rows ~ column)`
+- Use . for no split in `facet_grid`
+
+```{r}
+ggplot(data = my_data, 
+       mapping = aes(x = wage, 
+                     y = age,
+                     colour = race))+
+  geom_point()+
+  facet_grid(race ~ education)+
+  guides(colour = FALSE)
+  
+```
+
+Facet wrap helps us divide the data as per a single variable. 
+
+Syntax
+- `facet_wrap` is a 1d ribbon wrapped according to the number of rows and columns
+- `facet_wrap(~ variable, ncol = number of columns)`
+
+```{r}
+ggplot(data = my_data, 
+       mapping = aes(x = wage, 
+                     y = age))+
+  geom_point()+
+  facet_wrap(~ race, ncol = 2)
+
+```
+
 
 ### Box and whisker plot
 
+Box plots help us find outliers in a data set. They tell us the median data point, and map the other points in relation to that figure.
 
+#### Numerical variable
+We first make our box plot using `geom_boxplot()` and use `labs` to set the title and the y axis label. 
+
+The y axis is redundant here and does not give us much information. For this we use `theme()` and remove the ticks (markers) and the text using `element_blank()`
+```{R}
+ggplot(data=my_data,
+       mapping = aes (x = wage))+
+  geom_boxplot()+
+  labs(
+    x = "Wage amounts",
+    y = NULL,
+    title = "Distribution of wages"
+  )+
+  theme(
+    axis.ticks.y = element_blank(),
+    axis.text.y = element_blank())
+  
+
+```
+
+#### Numerical and categorical variables (side-by-side box plots)
+
+A categorical variable must be added in the y axis of `mapping=aes()`. 
+```{R}
+ggplot(data=my_data,
+       mapping = aes (x = wage, y=race))+
+  geom_boxplot()+
+  labs(
+    x = "Wage amounts",
+    y = "Race",
+    title = "Distribution of Wages",
+    subtitle = "according to race"
+  )
+  
+
+```
+
+### Hex plots
+A hex plot (`geom_hex()`) is a heatmap, where colour differences indicate the density of data. 
+```{r}
+ggplot(data = my_data, 
+       mapping = aes(x = wage, y = age))+
+  geom_hex()
+
+```
+
+
+### Data transformation
+
+#### Glimpse
+```{r}
+glimpse(my_data)
+```
+
+
+#### Filter
+Filter in only rows that have 'College Grad' in their education columns. Logical operators can be used here, to filter in rows based on their values in two or more columns (&& for and, | for or)
+
+```{r}
+my_data %>%
+  filter(education == "4. College Grad")
+```
+
+#### Arrange
+Arrange rows according to columns. The default order is from smaller values to bigger ones. 
+
+To reverse the order, use `arrange(desc())` (desc for 'descending'). 
+```{r}
+my_data %>%
+  arrange(education) 
+```
+
+#### Mutate 
+Add a new column. `.before` adds the column to the left-hand-side. It does not modify the original dataset. 
+```{r}
+my_data %>%
+  mutate(ratio = wage / age,
+    .before = 1
+  )
+```
+
+#### Group By 
+```{r}
+my_data %>%
+  group_by(education)
+
+```
+
+
+#### Summarise
+```{r}
+
+my_data %>%
+  group_by(education) %>%
+  summarise(
+    mean = mean(wage), 
+    median= median(wage),
+    sd = sd(wage),
+    min = min(wage),
+    max = max(wage))
+
+```
